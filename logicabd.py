@@ -43,12 +43,20 @@ def ObtenerProductos():
     conn.close()
     return productos
 
-def CargarProductos(lista):
+def CargarProductos(lista,arg):
     lista.delete(*lista.get_children())
     if TablaVacia():
         messagebox.showinfo("No se encontraron Productos",
                             "Actualmente no se encuentran productos disponibles en inventario."
                             ,parent = lista)
+        return
     productos = ObtenerProductos()
     for producto in productos:
-        lista.insert("","end",values = producto)
+        if arg == 1:
+            id_,nombre,cantidad,precio = producto
+            total = float(cantidad * precio)
+            fila = (id_,nombre,cantidad,precio,round(total,2))
+            lista.insert("","end",values = fila)
+        else:
+            lista.insert("","end",values = producto)
+

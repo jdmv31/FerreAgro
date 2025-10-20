@@ -82,7 +82,7 @@ def AgregarProducto():
     lbl_cant.pack(pady = 5)
     entry_cant.pack(pady = 5)
 
-    lbl_precio = tk.Label(frame_der,text = "Ingrese el precio del Producto", font = ("Trebuchet MS",16,"bold"),
+    lbl_precio = tk.Label(frame_der,text = "Ingrese el precio del Producto en dólares", font = ("Trebuchet MS",16,"bold"),
                           bg = "lightgray")
     lbl_precio.pack(pady = 5)
     entry_precio.pack(pady = 5)
@@ -95,7 +95,7 @@ def AgregarProducto():
     lista.heading("id", text="ID")
     lista.heading("nombre", text="Nombre")
     lista.heading("cantidad", text="Cantidad")
-    lista.heading("precio", text="Precio")
+    lista.heading("precio", text="Precio ($)")
     lista.column("id", width=50)
     lista.column("nombre", width=200)
     lista.column("cantidad", width=100, anchor="center")
@@ -107,7 +107,7 @@ def AgregarProducto():
     frame_secundario.pack(side="bottom",pady = 40, fill="x")
 
     btn_actualizar = tk.Button(frame_secundario, text = "Actualizar Tabla",width = 20, height = 2,
-                               command= lambda: (BDM.CargarProductos(lista)))
+                               command= lambda: (BDM.CargarProductos(lista,0)))
     btn_actualizar.pack(expand = True,pady = 20)
 
 
@@ -115,16 +115,55 @@ def AgregarProducto():
                             bg = "red", command = lambda: (CerrarVentana(ventana)),fg = "white")
     btn_volver.pack (side = tk.BOTTOM, expand = True,pady = 20)
     if not BDM.TablaVacia():
-        BDM.CargarProductos(lista)
+        BDM.CargarProductos(lista,0)
 
-    centrar_ventana(ventana,1280,650)
+    CentrarVentana(ventana,1280,650)
     ventana.resizable(False,False)
+
+def MostrarProductos():
+    if BDM.TablaVacia():
+        messagebox.showwarning("Error","No se encuentran productos registrados en la base de datos, agregue productos antes de consultarlos")
+    else:
+        ventana = tk.Tk()
+        ventana.geometry("1280x650")
+        ventana.iconbitmap("logotipo.ico")
+        ventana.title("Productos Disponibles")
+        CentrarVentana(ventana,1280,650)
+        label_principal = tk.Label(ventana,text="Productos Registrados",font=("Trebuchet MS", 24, "bold"),bg = "lightgray")
+        label_principal.pack(pady = 20)
+        frame = tk.Frame(ventana)
+        frame.pack(fill="both",expand=True)
+
+
+        lista = ttk.Treeview(frame,columns=("id","nombre","cantidad","precio","totalidad"),show="headings")
+        lista.heading("id", text="ID")
+        lista.heading("nombre",text="Nombre")
+        lista.heading("cantidad",text="Cantidad")
+        lista.heading("precio",text="Precio ($)")
+        lista.heading("totalidad",text="Totalidad ($)")
+        lista.column("id",width ="50")
+        lista.column("nombre",width="200")
+        lista.column("cantidad",width="100",anchor="center")
+        lista.column("precio",width="100",anchor="center")
+        lista.column("totalidad",width="100",anchor="center")
+
+        lista.pack(fill="both",expand = True,padx=15,pady=20)
+        lista.pack(fill="both",expand=True)
+
+        btn_volver = tk.Button(frame,text = "Volver al Menú Principal",command=lambda:(CerrarVentana(ventana)),
+                               width=30,height = 2, bg = "red",fg="white")
+        btn_volver.pack(side= tk.BOTTOM,expand = True,pady = 20)
+        BDM.CargarProductos(lista,1)
+
+
+        ventana.resizable(False,False)
+        CentrarVentana(ventana,1280,650)
 
 
 def CerrarVentana(vent):
     vent.destroy()
 
-def centrar_ventana(ventana, ancho, alto):
+def CentrarVentana(ventana, ancho, alto):
     ventana.update_idletasks()
     ancho_pantalla = ventana.winfo_screenwidth()
     alto_pantalla = ventana.winfo_screenheight()
@@ -148,8 +187,8 @@ btn_agregar = tk.Button(frame_botones, text="Agregar Producto",
                         command=AgregarProducto, width=20, height=2)
 btn_agregar.pack(pady=5)
 
-btn_ver = tk.Button(frame_botones, text="Inventario Disponible", 
-                     width=20, height=2)
+btn_ver = tk.Button(frame_botones, text="Inventario Disponible",command = lambda:(MostrarProductos()),
+                    width=20, height=2)
 btn_ver.pack(pady=5)
 
 btn_registrar = tk.Button(frame_botones, text = "Registrar Ventas", width = 20,height = 2)
@@ -159,7 +198,7 @@ btn_salir = tk.Button(root, text="Salir del Programa",command = lambda: (CerrarV
                       width=20, bg="red", fg="white")
 btn_salir.pack(pady=15)
 
-centrar_ventana(root,600,480)
+CentrarVentana(root,600,480)
 root.minsize(600,480)
 root.resizable(False,False)
 
