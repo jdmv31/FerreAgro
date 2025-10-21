@@ -159,7 +159,35 @@ def MostrarProductos():
         ventana.resizable(False,False)
         CentrarVentana(ventana,1280,650)
 
+def ModificarMercancia():
+    if BDM.TablaVacia():
+        messagebox.showwarning("Error","No se encuentran productos registrados en la base de datos, agregue productos antes de consultarlos")
+        return
+    else:
+        ventana = tk.Tk()
+        ventana.geometry("1280x650")
+        ventana.title("Modificar Mercancia")
+        label_principal = tk.Label(ventana,text="Productos Disponibles",font=("Trebuchet MS",24,"bold"),bg="lightgray")
+        label_principal.pack()
+        frame = tk.Frame(ventana)
+        frame.pack(expand=True, fill="both")
 
+        lista = ttk.Treeview(frame,columns=("id","nombre","cantidad","precio"),show="headings")
+        lista.heading("id", text="ID")
+        lista.heading("nombre",text="Nombre")
+        lista.heading("cantidad",text="Cantidad")
+        lista.heading("precio",text="Precio ($)")
+        lista.column("id",width ="50")
+        lista.column("nombre",width="200")
+        lista.column("cantidad",width="100",anchor="center")
+        lista.column("precio",width="100",anchor="center")
+
+        lista.pack(fill="both",expand = True,padx=15,pady=20)
+        lista.pack(fill="both",expand=True)
+    
+        BDM.CargarProductos(lista,0)
+        ventana.resizable(False,False)
+        CentrarVentana(ventana,1280,650)
 def CerrarVentana(vent):
     vent.destroy()
 
@@ -185,14 +213,18 @@ frame_botones.pack(pady=10)
 
 btn_agregar = tk.Button(frame_botones, text="Agregar Producto", 
                         command=AgregarProducto, width=20, height=2)
-btn_agregar.pack(pady=5)
+btn_agregar.pack(pady = 5)
 
 btn_ver = tk.Button(frame_botones, text="Inventario Disponible",command = lambda:(MostrarProductos()),
                     width=20, height=2)
-btn_ver.pack(pady=5)
+btn_ver.pack(pady = 5)
 
 btn_registrar = tk.Button(frame_botones, text = "Registrar Ventas", width = 20,height = 2)
 btn_registrar.pack(pady = 5)
+
+btn_actualizar = tk.Button(frame_botones,text = "Modificar Mercancia",width = 20, height = 2,
+                           command= lambda:(ModificarMercancia()))
+btn_actualizar.pack(pady = 5)
 
 btn_salir = tk.Button(root, text="Salir del Programa",command = lambda: (CerrarVentana(root)),
                       width=20, bg="red", fg="white")
