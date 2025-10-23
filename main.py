@@ -3,11 +3,16 @@ import tkinter as tk
 from tkinter import messagebox
 import logicabd as BDM
 from tkinter import ttk
+import ttkbootstrap as ttk
+from ttkbootstrap.widgets import Treeview
+from ttkbootstrap.constants import *
+from datetime import datetime
 
 BDM.CrearTabla()
+BDM.CrearTablaVentas()
 
 
-def EsDecimal(numero):
+def ContieneLetras(numero):
     if any (c.isalpha() for c in numero):
         return False
     
@@ -16,14 +21,12 @@ def EsDecimal(numero):
 
 def ConfirmarRegistro(entry_nombre,entry_cant,entry_precio,ventana):
     nombre = entry_nombre.get()
-    cantidad = entry_cant.get().strip()
-    precio = entry_precio.get().strip().replace(",",".")
-    precio = precio.replace("-","")
-    cantidad = cantidad.replace("-","")
+    cantidad = entry_cant.get().strip().replace(",","").replace("-","").replace(".","")
+    precio = entry_precio.get().strip().replace(",","").replace("-","").replace(".","")
 
     if nombre !="" and cantidad != "" and precio != "":
         nombre = nombre.upper()
-        if cantidad.isdigit() and EsDecimal(precio):
+        if cantidad.isdigit():
             cant = int(cantidad)
             monto = float(precio)
 
@@ -44,7 +47,7 @@ def ConfirmarRegistro(entry_nombre,entry_cant,entry_precio,ventana):
             messagebox.showwarning("Error en la Cantidad Disponible",
                                    "La cantidad ingresada no puede contener caracteres alfabeticos, intente nuevamente."
                                    ,parent = ventana)
-        if not EsDecimal(precio):
+        if not ContieneLetras(precio):
             messagebox.showwarning("Precio Incorrecto","El precio ingresado no puede contener caracteres alfabéticos, intente nuevamente.",
                                    parent = ventana)
     else:
@@ -159,35 +162,219 @@ def MostrarProductos():
         ventana.resizable(False,False)
         CentrarVentana(ventana,1280,650)
 
+def Modificacion(entry_cantidad, entry_precio, datos,modal):
+    try:
+        cant_str = entry_cantidad.get().strip().replace("-", "").replace(",", "").replace(".","")
+        precio_str = entry_precio.get().strip().replace("-", "").replace(",", "").replace(".","")
+        cant = int(cant_str)
+        precio = float(precio_str)
+
+        if cant < int(datos[2]):
+            messagebox.showwarning("Error", "La cantidad a modificar no puede ser menor a la establecida.",
+                                   parent=modal)
+        elif cant == 0 or precio == 0:
+            messagebox.showwarning("Error", "La cantidad o el precio a modificar no puede ser nulo.\nIntente nuevamente."
+                                   ,parent=modal)
+        else:
+            BDM.ActualizarBD(datos[0], cant, precio)
+            messagebox.showinfo("Modificacion Exitosa", 
+                                "Se han modificado correctamente los datos asignados."
+                                ,parent=modal)            
+            CerrarVentana(modal)
+
+
+    except ValueError:
+        messagebox.showwarning("Error", "La cantidad o el precio a modificar deben ser valores numéricos.\nIntente nuevamente.",
+                               parent=modal)
+
+def ModificarProducto(datos):
+    modal = ttk.Toplevel(vent_mod)
+    modal.title(f"Modificar {datos[1]}")
+    modal.geometry("400x250")
+    modal.position_center()
+    modal.resizable(False, False)
+    modal.grab_set()
+    modal.iconbitmap("logotipo.ico")
+
+    ttk.Label(modal, text="Cantidad:", font=("Segoe UI", 11)).pack(pady=(20, 5))
+    entry_cantidad = ttk.Entry(modal)
+    entry_cantidad.insert(0, datos[2])
+    entry_cantidad.pack()
+
+    ttk.Label(modal, text="Precio ($):", font=("Segoe UI", 11)).pack(pady=(15, 5))
+    entry_precio = ttk.Entry(modal)
+    entry_precio.insert(0, datos[3])
+    entry_precio.pack()
+    boton = ttk.Button(modal,
+                       text="Guardar",
+                       bootstyle=SUCCESS,
+                       command=lambda: Modificacion(entry_cantidad, entry_precio, datos,modal))
+    boton.pack(pady=15)
+
+def SeleccionarProducto(event):
+    item = lista.focus()
+    if item:
+        valores = lista.item(item, "values")
+        respuesta = messagebox.askyesno(
+            "Modificar producto",
+            f"¿Deseas modificar el producto '{valores[1]}'?\nPuedes cambiar la cantidad o el precio.",
+            parent = vent_mod
+        )
+        if respuesta:
+            ModificarProducto(valores)
+
 def ModificarMercancia():
     if BDM.TablaVacia():
-        messagebox.showwarning("Error","No se encuentran productos registrados en la base de datos, agregue productos antes de consultarlos")
+        messagebox.showwarning("Error", "No se encuentran productos registrados en la base de datos, agregue productos antes de modificarlos.")
         return
     else:
-        ventana = tk.Tk()
-        ventana.geometry("1280x650")
-        ventana.title("Modificar Mercancia")
-        label_principal = tk.Label(ventana,text="Productos Disponibles",font=("Trebuchet MS",24,"bold"),bg="lightgray")
+        global vent_mod
+        vent_mod = ttk.Window(
+            title="Modificar Productos",
+            size=(1280, 650),
+            position=(100, 100)
+        )
+        vent_mod.iconbitmap("logotipo.ico")
+        label_principal = ttk.Label(
+            vent_mod,
+            text="Productos Disponibles",
+            font=("Trebuchet MS", 24, "bold")
+        )
         label_principal.pack()
-        frame = tk.Frame(ventana)
-        frame.pack(expand=True, fill="both")
 
-        lista = ttk.Treeview(frame,columns=("id","nombre","cantidad","precio"),show="headings")
+        frame = ttk.Frame(vent_mod)
+        frame.pack(fill="both", expand=True)
+
+        global lista
+        lista = ttk.Treeview(
+            frame,
+            columns=("id", "nombre", "cantidad", "precio"),
+            show="headings"
+        )
         lista.heading("id", text="ID")
-        lista.heading("nombre",text="Nombre")
-        lista.heading("cantidad",text="Cantidad")
-        lista.heading("precio",text="Precio ($)")
-        lista.column("id",width ="50")
-        lista.column("nombre",width="200")
-        lista.column("cantidad",width="100",anchor="center")
-        lista.column("precio",width="100",anchor="center")
+        lista.heading("nombre", text="Nombre")
+        lista.heading("cantidad", text="Cantidad")
+        lista.heading("precio", text="Precio ($)")
+        lista.column("id", width=50)
+        lista.column("nombre", width=200)
+        lista.column("cantidad", width=100, anchor="center")
+        lista.column("precio", width=100, anchor="center")
+        lista.pack(fill="both", expand=True, padx=15, pady=20)
+        lista.bind("<Double-1>",SeleccionarProducto)
+        boton_volver = ttk.Button(vent_mod,
+                                  text="Volver al Menu Principal",
+                                  command=lambda:CerrarVentana(vent_mod),
+                                  bootstyle=DANGER)
+        boton_volver.pack(pady=15)
+        BDM.CargarProductos(lista, 0)
+        vent_mod.resizable(False, False)
+        CentrarVentana(vent_mod, 1280, 650)
 
-        lista.pack(fill="both",expand = True,padx=15,pady=20)
-        lista.pack(fill="both",expand=True)
-    
-        BDM.CargarProductos(lista,0)
-        ventana.resizable(False,False)
-        CentrarVentana(ventana,1280,650)
+def GuardarVenta (entry, datos, modal):
+    try:
+        cant_str = entry.get().strip().replace("-", "").replace(",", "").replace(".","")
+        cant = int(cant_str)
+
+        if cant > int(datos[2]):
+            messagebox.showwarning("Error", "La cantidad a vender no puede ser mayor a la existente.",
+                                   parent=modal)
+        elif cant == 0:
+            messagebox.showwarning("Error", "La cantidad a vender no puede ser nula.\nIntente nuevamente."
+                                   ,parent=modal)
+        else:
+            if cant == int(datos[2]):
+                messagebox.showinfo("Se ha agotado el producto",
+                                    "Se ha vendido la totalidad de la mercancia, debe reabastecer el producto y registarlo en el sistema.")
+            nueva_cant = int(datos[2]) - cant
+            totalidad = cant * float(datos[3])
+            fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            BDM.ActualizarBD(datos[0],nueva_cant,datos[3])
+            BDM.IngresarVenta(datos[0],cant,totalidad,fecha)
+            messagebox.showinfo("Venta Registrada Exitosamente", 
+                                "Se ha registrado correctamente la venta, se ha actualizado la base de datos."
+                                ,parent=modal)            
+            CerrarVentana(modal)
+
+
+    except ValueError:
+        messagebox.showwarning("Error", "La cantidad vendida debe contener valores numéricos.\nIntente nuevamente.",
+                               parent=modal)
+
+def Venta(datos):
+    modal = ttk.Toplevel(vent_venta)
+    modal.geometry("400x250")
+    modal.title("Registrar Venta")
+    modal.position_center()
+    modal.resizable(False, False)
+    modal.grab_set()
+    modal.iconbitmap("logotipo.ico")
+    ttk.Label(modal, text="Cantidad Vendida: ", font=("Segoe UI", 11)).pack(pady=(15,5))
+    entry = ttk.Entry(modal)
+    entry.insert(0,datos[2])
+    entry.pack()
+    boton = ttk.Button(modal,
+                       text="Registrar Venta",
+                       bootstyle=SUCCESS,
+                       command=lambda:GuardarVenta(entry,datos,modal))
+    boton.pack(pady=15)
+
+def VentaProducto(event):
+    item = lista.focus()
+    if item:
+        valores = lista.item(item,"values")
+        respuesta = messagebox.askyesno(
+            "Realizar Venta",
+            f"¿Deseas registrar una venta del producto '{valores[1]}'?",
+            parent = vent_venta
+        )
+        if respuesta:
+            Venta(valores)
+
+
+def RegistrarVenta():
+    if BDM.TablaVacia():
+        messagebox.showwarning("Error", "No se encuentran productos registrados en la base de datos, agregue productos antes de poder registrar una venta.")
+        return
+    else:
+        print("a")
+        global vent_venta
+        vent_venta = ttk.Window(title="Registra Ventas",
+                                size=(1280,650),
+                                position=(100,100))
+        vent_venta.iconbitmap("logotipo.ico")
+        frame1 = ttk.Frame(vent_venta)
+        frame1.pack(fill="both",expand=True)
+        titulo = ttk.Label(frame1,
+                           text="Registrar Ventas",
+                           font=("Trebuchet MS",24,"bold"))
+        titulo.pack(pady=15)
+        global lista
+        lista = ttk.Treeview(
+            frame1,
+            columns=("id", "nombre", "cantidad", "precio"),
+            show="headings"
+        )
+        lista.heading("id", text="ID")
+        lista.heading("nombre", text="Nombre")
+        lista.heading("cantidad", text="Cantidad")
+        lista.heading("precio", text="Precio ($)")
+        lista.column("id", width=50)
+        lista.column("nombre", width=200)
+        lista.column("cantidad", width=100, anchor="center")
+        lista.column("precio", width=100, anchor="center")
+        lista.pack(fill="both", expand=True, padx=15, pady=20)
+        lista.bind("<Double-1>",VentaProducto)
+        boton_volver = ttk.Button(vent_venta,
+                                  text="Volver al Menu Principal",
+                                  command=lambda:CerrarVentana(vent_venta),
+                                  bootstyle=DANGER)
+        boton_volver.pack(pady=15)
+
+        BDM.CargarProductos(lista, 0)
+        CentrarVentana(vent_venta,1280,650)
+        vent_venta.resizable(False,False)
+
+
 def CerrarVentana(vent):
     vent.destroy()
 
@@ -199,35 +386,50 @@ def CentrarVentana(ventana, ancho, alto):
     y = (alto_pantalla - alto) // 2
     ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
 
-root = tk.Tk()
-root.title("Gestion de Inventario")
-root.iconbitmap("logotipo.ico") 
 
 
-label_titulo = tk.Label(root, text="Gestión de Inventario", font=("Trebuchet MS", 40, "bold"))
-label_titulo.pack(pady=20)
+root = ttk.Window(title="Gestion de Inventario",
+                  themename="cosmo",
+                  size= (600,480),
+                  position=(100,100),
+                  )
 
+titulo = ttk.Label(root,
+                   text="Gestion de Inventario",
+                   font=("Trebuchet MS",24,"bold"))
+titulo.pack(pady = 20)
 
-frame_botones = tk.Frame(root)
-frame_botones.pack(pady=10)
+frame = ttk.Frame(root)
+frame.pack(pady = 10)
 
-btn_agregar = tk.Button(frame_botones, text="Agregar Producto", 
-                        command=AgregarProducto, width=20, height=2)
-btn_agregar.pack(pady = 5)
+btn_agregar = ttk.Button(frame,
+                         text="Agregar Producto",
+                         command=AgregarProducto,
+                         bootstyle=SUCCESS)
+btn_agregar.pack(pady=5)
 
-btn_ver = tk.Button(frame_botones, text="Inventario Disponible",command = lambda:(MostrarProductos()),
-                    width=20, height=2)
+btn_ver = ttk.Button(frame, 
+                        text="Inventario Disponible",
+                        command = lambda:MostrarProductos(),
+                        bootstyle=SUCCESS)
 btn_ver.pack(pady = 5)
 
-btn_registrar = tk.Button(frame_botones, text = "Registrar Ventas", width = 20,height = 2)
+btn_registrar = ttk.Button(frame,
+                        text = "Registrar Ventas",
+                        command= lambda:RegistrarVenta(),
+                        bootstyle=SUCCESS)
 btn_registrar.pack(pady = 5)
 
-btn_actualizar = tk.Button(frame_botones,text = "Modificar Mercancia",width = 20, height = 2,
-                           command= lambda:(ModificarMercancia()))
+btn_actualizar = ttk.Button(frame,
+                        text = "Modificar Mercancia",
+                        command= lambda:ModificarMercancia(),
+                        bootstyle=SUCCESS)
 btn_actualizar.pack(pady = 5)
 
-btn_salir = tk.Button(root, text="Salir del Programa",command = lambda: (CerrarVentana(root)),
-                      width=20, bg="red", fg="white")
+btn_salir = ttk.Button(frame,
+                       text="Salir del Programa",
+                       command = lambda: CerrarVentana(root),
+                       bootstyle=DANGER)
 btn_salir.pack(pady=15)
 
 CentrarVentana(root,600,480)

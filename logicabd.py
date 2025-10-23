@@ -5,6 +5,9 @@ from tkinter import messagebox
 def Conectar():
     return sqlite3.connect("inventario.db")
 
+def ConectarVentas():
+    return sqlite3.connect("ventas.db")
+
 def CrearTabla():
     conn = Conectar()
     cursor = conn.cursor()
@@ -18,6 +21,30 @@ def CrearTabla():
     """)
     conn.commit()
     conn.close()
+
+def CrearTablaVentas():
+    conn = ConectarVentas()
+    cursor = conn.cursor()
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ventas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                producto TEXT NOT NULL,
+                cantidad INTEGER NOT NULL,
+                totalidad REAL NOT NULL,
+                fecha TEXT NOT NULL -- formato: 'YYYY-MM-DD HH:MM:SS'
+            )
+    """)
+    conn.commit()
+    conn.close()
+
+def IngresarVenta(nombre,cantidad,totalidad,fecha):
+    conn = ConectarVentas()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO ventas (producto,cantidad,totalidad,fecha) VALUES (?,?,?,?)",
+                   (nombre,cantidad,totalidad,fecha))
+    conn.commit()
+    conn.close()
+
 
 def IngresarProducto(nombre,cantidad,precio):
     conn = Conectar()
@@ -60,3 +87,10 @@ def CargarProductos(lista,arg):
         else:
             lista.insert("","end",values = producto)
 
+def ActualizarBD(id, cantidad, precio):
+    conn = Conectar()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE productos SET precio = ?, cantidad = ? WHERE id = ?",
+                    (precio, cantidad, id))
+    conn.commit()
+    conn.close()
