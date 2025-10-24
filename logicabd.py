@@ -62,6 +62,14 @@ def TablaVacia():
     conn.close()
     return cant == 0
 
+def TablaVaciaVentas():
+    conn = ConectarVentas()
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT COUNT (*) FROM ventas")
+    cant = cursor.fetchone()[0]
+    conn.close()
+    return cant == 0
+
 def ObtenerProductos():
     conn = Conectar()
     cursor = conn.cursor()
@@ -94,3 +102,35 @@ def ActualizarBD(id, cantidad, precio):
                     (precio, cantidad, id))
     conn.commit()
     conn.close()
+
+def MasVendidos(limite=10):
+    conn = ConectarVentas()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("ATTACH DATABASE 'inventario.db' AS inv")
+        query = """
+            SELECT 
+                p.nombre,  -- p.nombre viene de la BD 'inv'
+                SUM(v.cantidad) AS total_vendido
+            FROM 
+                ventas AS v          -- 'ventas' es de la BD principal
+            JOIN 
+                inv.productos AS p ON v.producto = p.id -- Cruzamos con inv.productos
+            GROUP BY 
+                p.nombre
+            ORDER BY 
+                total_vendido DESC
+            LIMIT ?
+        """
+        
+        cursor.execute(query, (limite,))
+        resultados = cursor.fetchall()
+        cursor.execute("DETACH DATABASE 'inv'")
+        
+    except sqlite3.Error as e:
+        print(f"Error de base de datos: {e}")
+        resultados = []
+    finally:
+        conn.close()
+    return resultados

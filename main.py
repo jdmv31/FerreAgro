@@ -7,6 +7,8 @@ import ttkbootstrap as ttk
 from ttkbootstrap.widgets import Treeview
 from ttkbootstrap.constants import *
 from datetime import datetime
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 BDM.CrearTabla()
 BDM.CrearTablaVentas()
@@ -122,45 +124,6 @@ def AgregarProducto():
 
     CentrarVentana(ventana,1280,650)
     ventana.resizable(False,False)
-
-def MostrarProductos():
-    if BDM.TablaVacia():
-        messagebox.showwarning("Error","No se encuentran productos registrados en la base de datos, agregue productos antes de consultarlos")
-    else:
-        ventana = tk.Tk()
-        ventana.geometry("1280x650")
-        ventana.iconbitmap("logotipo.ico")
-        ventana.title("Productos Disponibles")
-        CentrarVentana(ventana,1280,650)
-        label_principal = tk.Label(ventana,text="Productos Registrados",font=("Trebuchet MS", 24, "bold"),bg = "lightgray")
-        label_principal.pack(pady = 20)
-        frame = tk.Frame(ventana)
-        frame.pack(fill="both",expand=True)
-
-
-        lista = ttk.Treeview(frame,columns=("id","nombre","cantidad","precio","totalidad"),show="headings")
-        lista.heading("id", text="ID")
-        lista.heading("nombre",text="Nombre")
-        lista.heading("cantidad",text="Cantidad")
-        lista.heading("precio",text="Precio ($)")
-        lista.heading("totalidad",text="Totalidad ($)")
-        lista.column("id",width ="50")
-        lista.column("nombre",width="200")
-        lista.column("cantidad",width="100",anchor="center")
-        lista.column("precio",width="100",anchor="center")
-        lista.column("totalidad",width="100",anchor="center")
-
-        lista.pack(fill="both",expand = True,padx=15,pady=20)
-        lista.pack(fill="both",expand=True)
-
-        btn_volver = tk.Button(frame,text = "Volver al Menú Principal",command=lambda:(CerrarVentana(ventana)),
-                               width=30,height = 2, bg = "red",fg="white")
-        btn_volver.pack(side= tk.BOTTOM,expand = True,pady = 20)
-        BDM.CargarProductos(lista,1)
-
-
-        ventana.resizable(False,False)
-        CentrarVentana(ventana,1280,650)
 
 def Modificacion(entry_cantidad, entry_precio, datos,modal):
     try:
@@ -336,7 +299,6 @@ def RegistrarVenta():
         messagebox.showwarning("Error", "No se encuentran productos registrados en la base de datos, agregue productos antes de poder registrar una venta.")
         return
     else:
-        print("a")
         global vent_venta
         vent_venta = ttk.Window(title="Registra Ventas",
                                 size=(1280,650),
@@ -386,54 +348,135 @@ def CentrarVentana(ventana, ancho, alto):
     y = (alto_pantalla - alto) // 2
     ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
 
+root = ttk.Window(title="Gestion de Inventario FerreAgro", themename="darkly")
+root.state("zoomed")
+root.iconbitmap("logotipo.ico")
+
+style = ttk.Style()
+style.configure("Fondo.TFrame", background="#0d0a1c")
+style.configure("Frame.TFrame", background="#201a47")
+style.configure("Titulo.TLabel", background="#0d0a1c", foreground="white")
+style.configure("Aviso.TLabel",background="#201a47", foreground="white")
+
+fondo = ttk.Frame(root, style="Fondo.TFrame")
+fondo.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+titulo = ttk.Label(fondo,
+                   text="Gestion de Inventario Materiales FerreAgro",
+                   font=("Trebuchet MS", 24, "bold"),
+                   style="Titulo.TLabel")
+titulo.pack(pady=20)
+
+frame = ttk.Frame(fondo, padding=(20, 10), style="Fondo.TFrame")
+frame.pack(fill="both", expand=True)
+
+frame_izq = ttk.LabelFrame(frame,
+                           style="Frame.TFrame",
+                           width=250,
+                           padding=10)
+frame_izq.pack(side="left", fill="y", padx=10, pady=10)
+frame_izq.pack_propagate(False)
+
+frame_der = ttk.Label(frame,style="Frame.TFrame")
+frame_der.pack(side="right",fill="both",padx=10,pady=10, expand = True)
+
+subframe_izq = ttk.Frame(frame_der,style="Frame.TFrame")
+subframe_izq.pack(side="left",fill="both",expand=True)
+subframe_der = ttk.Frame(frame_der,style="Frame.TFrame")
+subframe_der.pack(side="left",fill="both",expand=True)
+
+if BDM.TablaVacia():
+    aviso = ttk.Label(subframe_izq,text="No hay productos registrados en el sistema.",
+                      font=("Trebuchet MS",15,"bold"),
+                      style="Aviso.TLabel")
+    aviso.pack(pady = 20)
+else:
+    titulo = ttk.Label(subframe_izq,
+                       text="Productos Disponibles",style="Aviso.TLabel",
+                       font=("Trebuchet MS",15,"bold"))
+    titulo.pack()
+    lista = ttk.Treeview(subframe_izq,columns=("id","nombre","cantidad","precio","totalidad"),show="headings")
+    lista.heading("id", text="ID")
+    lista.heading("nombre",text="Nombre")
+    lista.heading("cantidad",text="Cantidad")
+    lista.heading("precio",text="Precio ($)")
+    lista.heading("totalidad",text="Totalidad ($)")
+    lista.column("id",width ="50")
+    lista.column("nombre",width="200")
+    lista.column("cantidad",width="100",anchor="center")
+    lista.column("precio",width="100",anchor="center")
+    lista.column("totalidad",width="100",anchor="center")
+    lista.pack(fill="both",expand = True,padx=15,pady=20)
+    lista.pack(fill="both",expand=True)
+    BDM.CargarProductos(lista,1)
 
 
-root = ttk.Window(title="Gestion de Inventario",
-                  themename="cosmo",
-                  size= (600,480),
-                  position=(100,100),
-                  )
+if BDM.TablaVaciaVentas():
+    aviso = ttk.Label(subframe_der,
+                      text="No hay ventas registradas en el sistema.",
+                      font=("Trebuchet MS", 15, "bold"),
+                      style="Aviso.TLabel")
+    aviso.pack(pady=20)
+else:
+    datos = BDM.MasVendidos()
 
-titulo = ttk.Label(root,
-                   text="Gestion de Inventario",
-                   font=("Trebuchet MS",24,"bold"))
-titulo.pack(pady = 20)
+    nombres = [item[0] for item in datos]
+    cantidades = [item[1] for item in datos]
 
-frame = ttk.Frame(root)
-frame.pack(pady = 10)
+    COLOR_FONDO = '#2F2F2F'
+    COLOR_TEXTO = 'white'
+    COLOR_BORDE_GRAFICO = '#373737'
 
-btn_agregar = ttk.Button(frame,
+    fig = Figure(figsize=(4, 4), dpi=100, facecolor=COLOR_FONDO)
+    ax = fig.add_subplot(111)
+    ax.set_facecolor(COLOR_FONDO)
+
+    ax.set_title("Productos más vendidos", color=COLOR_TEXTO)
+
+    wedges, texts, autotexts = ax.pie(
+        cantidades, 
+        labels=nombres, 
+        autopct="%1.1f%%", 
+        startangle=140,
+        textprops={'color': COLOR_TEXTO},
+        wedgeprops={'edgecolor': COLOR_BORDE_GRAFICO}
+    )
+
+    for autotext in autotexts:
+        autotext.set_color(COLOR_TEXTO)
+
+
+    canvas = FigureCanvasTkAgg(fig, master=subframe_der)
+    canvas.draw()
+    canvas.get_tk_widget().pack(pady=10, fill="both", expand=True)
+
+btn_agregar = ttk.Button(frame_izq,
                          text="Agregar Producto",
                          command=AgregarProducto,
-                         bootstyle=SUCCESS)
-btn_agregar.pack(pady=5)
+                         bootstyle="success-outline",
+                         padding=(30, 15))
+btn_agregar.pack(pady=10)
 
-btn_ver = ttk.Button(frame, 
-                        text="Inventario Disponible",
-                        command = lambda:MostrarProductos(),
-                        bootstyle=SUCCESS)
-btn_ver.pack(pady = 5)
+btn_registrar = ttk.Button(frame_izq,
+                           text="Registrar Ventas",
+                           command=RegistrarVenta,
+                           bootstyle="success-outline",
+                           padding=(35, 15))
+btn_registrar.pack(pady=10)
 
-btn_registrar = ttk.Button(frame,
-                        text = "Registrar Ventas",
-                        command= lambda:RegistrarVenta(),
-                        bootstyle=SUCCESS)
-btn_registrar.pack(pady = 5)
+btn_actualizar = ttk.Button(frame_izq,
+                            text="Modificar Mercancia",
+                            command=ModificarMercancia,
+                            bootstyle="success-outline",
+                            padding=(25, 15))
+btn_actualizar.pack(pady=10)
 
-btn_actualizar = ttk.Button(frame,
-                        text = "Modificar Mercancia",
-                        command= lambda:ModificarMercancia(),
-                        bootstyle=SUCCESS)
-btn_actualizar.pack(pady = 5)
-
-btn_salir = ttk.Button(frame,
+btn_salir = ttk.Button(frame_izq,
                        text="Salir del Programa",
-                       command = lambda: CerrarVentana(root),
-                       bootstyle=DANGER)
-btn_salir.pack(pady=15)
+                       command=lambda: CerrarVentana(root),
+                       bootstyle="danger-outline",
+                       padding=(30, 15))
+btn_salir.pack(pady=15, side="bottom")
 
-CentrarVentana(root,600,480)
-root.minsize(600,480)
-root.resizable(False,False)
-
+root.minsize(600, 480)
 root.mainloop()
